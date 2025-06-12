@@ -1,1 +1,1 @@
-https://github.com/pikidisini/Eksperimen_SML_Fiqih.git
+https://github.com/pikidisini/Eksperimen_SML_Fiqih/tree/main/SMSML_Fiqih/Membangun_model

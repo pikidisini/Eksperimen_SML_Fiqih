@@ -1,44 +1,50 @@
-import os
-import mlflow
 import pandas as pd
+import numpy as np
+import mlflow
+import mlflow.sklearn
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import GridSearchCV, train_test_split
-from sklearn.metrics import mean_squared_error
-from nasa_preprocessing.automate_Fiqih import preprocess_fd001
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
 
-def run_hyperparameter_tuning(data_path):
-    # Load data
-    df = pd.read_csv(data_path)
-    X_train, X_test, y_train, y_test = preprocess_fd001(df)
+# Load data
+df = pd.read_csv("SMSML_Fiqih/Membangun_model/nasa_preprocessing/clean/train_FD001_clean.csv")
 
-    # Hyperparameter grid
-    param_grid = {
-        "n_estimators": [50, 100, 150],
-        "max_depth": [5, 10, 20],
-        "min_samples_split": [2, 5]
-    }
+# Siapkan fitur dan target
+X = df.drop(['RUL', 'unit'], axis=1)
+y = df['RUL']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Initialize model and GridSearchCV
-    rf = RandomForestRegressor()
-    grid_search = GridSearchCV(rf, param_grid, cv=3, scoring="neg_root_mean_squared_error", n_jobs=-1)
+# Inisialisasi experiment MLflow
+mlflow.set_experiment("Tuning_Model_Fiqih")
 
-    # Fit model
-    with mlflow.start_run():
-        grid_search.fit(X_train, y_train)
+# Daftar hyperparameter untuk tuning
+n_estimators_list = [50, 100, 150]
+max_depth_list = [5, 10, 15]
 
-        # Best model
-        best_model = grid_search.best_estimator_
-        best_params = grid_search.best_params_
-        y_pred = best_model.predict(X_test)
-        rmse = mean_squared_error(y_test, y_pred, squared=False)
+# Loop hyperparameter tuning
+for n_estimators in n_estimators_list:
+    for max_depth in max_depth_list:
+        with mlflow.start_run():
+            # Inisialisasi model
+            model = RandomForestRegressor(n_estimators=n_estimators, max_depth=max_depth, random_state=42)
+            model.fit(X_train, y_train)
 
-        # Logging
-        mlflow.log_params(best_params)
-        mlflow.log_metric("rmse", rmse)
-        mlflow.sklearn.log_model(best_model, "best_random_forest_model")
+            # Prediksi
+            y_pred = model.predict(X_test)
 
-        print(f"Best RMSE: {rmse}")
-        print("Best Parameters:", best_params)
+            # Hitung metrik
+            mae = mean_absolute_error(y_test, y_pred)
+            mse = mean_squared_error(y_test, y_pred)
+            r2 = r2_score(y_test, y_pred)
 
-if __name__ == "__main__":
-    run_hyperparameter_tuning("data/train_FD001.txt")
+            # Logging manual
+            mlflow.log_param("n_estimators", n_estimators)
+            mlflow.log_param("max_depth", max_depth)
+            mlflow.log_metric("MAE", mae)
+            mlflow.log_metric("MSE", mse)
+            mlflow.log_metric("R2", r2)
+
+            # Simpan model
+            mlflow.sklearn.log_model(model, "model")
+
+            print(f"Model dengan n_estimators={n_estimators}, max_depth={max_depth} => MAE: {mae:.2f}, MSE: {mse:.2f}, R2: {r2:.2f}")
