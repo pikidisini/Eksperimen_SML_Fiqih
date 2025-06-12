@@ -1,2 +1,3 @@
 .venv
 mlruns
+model.joblib
