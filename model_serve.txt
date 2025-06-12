@@ -1,0 +1,1 @@
+mlflow models serve -m mlruns/0/models/m-5a3567f31d2d4df496a669205a5ac782/artifacts -p 5001 --no-conda

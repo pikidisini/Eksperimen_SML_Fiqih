@@ -1,8 +1,9 @@
+import argparse
 import pandas as pd
 import mlflow
 import mlflow.sklearn
 import joblib
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import ElasticNet
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
     mean_absolute_error,
@@ -12,53 +13,45 @@ from sklearn.metrics import (
     explained_variance_score
 )
 
-# 1. Load data
+# 1. Argument parsing
+parser = argparse.ArgumentParser()
+parser.add_argument("--alpha", type=float, default=0.5)
+parser.add_argument("--l1_ratio", type=float, default=0.01)
+args = parser.parse_args()
+
+# 2. Load data
 df = pd.read_csv("SMSML_Fiqih/Workflow-CI/MLProject/nasa_preprocessing/clean/train_FD001_clean.csv")
 
-# 2. Feature engineering
+# 3. Feature engineering
 max_cycle_per_unit = df.groupby("unit")["time_in_cycles"].transform("max")
 df["RUL"] = max_cycle_per_unit - df["time_in_cycles"]
 
-# 3. Feature selection
+# 4. Feature selection
 X = df.drop(columns=["unit", "time_in_cycles", "RUL"])
 y = df["RUL"]
 
-print("Feature columns used in training:")
-print(X.columns.tolist())
+# 5. Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# 4. Split data
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+print(X_train.columns.tolist())
 
-# 5. Manual MLflow Logging
+# 6. Start MLflow run
 with mlflow.start_run():
+    mlflow.log_param("alpha", args.alpha)
+    mlflow.log_param("l1_ratio", args.l1_ratio)
 
-    # 6. Train model
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model = ElasticNet(alpha=args.alpha, l1_ratio=args.l1_ratio, random_state=42)
     model.fit(X_train, y_train)
 
-    # 7. Predict and evaluate
     y_pred = model.predict(X_test)
-    mae = mean_absolute_error(y_test, y_pred)
-    mse = mean_squared_error(y_test, y_pred)
-    r2 = r2_score(y_test, y_pred)
-    max_err = max_error(y_test, y_pred)
-    exp_var = explained_variance_score(y_test, y_pred)
+    mlflow.log_metric("mae", mean_absolute_error(y_test, y_pred))
+    mlflow.log_metric("mse", mean_squared_error(y_test, y_pred))
+    mlflow.log_metric("r2", r2_score(y_test, y_pred))
+    mlflow.log_metric("max_error", max_error(y_test, y_pred))
+    mlflow.log_metric("explained_variance", explained_variance_score(y_test, y_pred))
 
-    # 8. Log metrics manually
-    mlflow.log_metric("mae", mae)
-    mlflow.log_metric("mse", mse)
-    mlflow.log_metric("r2", r2)
-    mlflow.log_metric("max_error", max_err)
-    mlflow.log_metric("explained_variance", exp_var)
+    # Simpan model ke MLflow
+    mlflow.sklearn.log_model(model, artifact_path="model")
 
-    # 9. Log model as artifact
-    mlflow.sklearn.log_model(model, "model")
-
-    # 10. Optional: save local copy
+    # Simpan model lokal (opsional)
     joblib.dump(model, "model.joblib")
-
-    print(f"MAE: {mae:.2f}")
-    print(f"MSE: {mse:.2f}")
-    print(f"R2 Score: {r2:.2f}")
