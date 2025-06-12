@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 5s  # Interval scraping ke target
+
+scrape_configs:
+  - job_name: 'inference_monitoring'
+    static_configs:
+      - targets: ['localhost:8000']  # Alamat dari prometheus_exporter.py

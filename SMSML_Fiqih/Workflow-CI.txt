@@ -1,0 +1,37 @@
+CI/CD dengan GitHub Actions untuk MLflow Project
+
+1. Buat file di .github/workflows/train.yml
+2. Isi file dengan:
+---
+name: Train ML model
+
+on:
+  push:
+    paths:
+      - 'Membangun_model/**'
+      - '.github/workflows/train.yml'
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        pip install -r Membangun_model/requirements.txt
+
+    - name: Run training with MLflow
+      run: |
+        cd Membangun_model
+        python modelling.py
+---
+
+3. Push ke GitHub → training otomatis dijalankan.
