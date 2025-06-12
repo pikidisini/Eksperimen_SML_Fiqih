@@ -40,4 +40,4 @@ with mlflow.start_run():
     print(f"MSE: {mse:.2f}")
     print(f"R2 Score: {r2:.2f}")
 
-#joblib.dump(model, "SMSML_Fiqih/Membangun_model/model.joblib")
+joblib.dump(model, "SMSML_Fiqih/Membangun_model/model.joblib")
