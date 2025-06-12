@@ -22,7 +22,8 @@ jobs:
           auto-activate-base: false
 
       - name: Install MLflow
-        run: conda install -c conda-forge mlflow
+        run: |
+          conda install -c conda-forge mlflow
 
       - name: Run MLflow Project Training
         run: |
@@ -39,7 +40,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: mlflow-model
-          path: mlruns/0/${{ steps.get_run.outputs.run_id }}
+          path: mlruns/0/${{ steps.get_run.outputs.run_id }}/artifacts/model
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
